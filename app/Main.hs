@@ -5,7 +5,7 @@ import Control.Concurrent  ( threadDelay, forkIO , takeMVar , putMVar , newEmpty
 import Control.Monad (replicateM)
 
 
--- TYPES
+-- DATA TYPES
 data Customer = Customer {
   name :: Name,
   balance :: Balance,
@@ -18,32 +18,33 @@ type Name = String
 type Value = Int
 
 data Coin = Head | Tail deriving (Show, Eq)  
-data Customers = C1 | C2 | C3 | C4 deriving (Show, Eq)
 
+-- RANDOM GENERATOR FUNCTIONS
 coinFlip :: IO Coin
 coinFlip = do
     r <- randomIO :: IO Bool
     return $ if r then Head else Tail
 
-mapIntToCustomers :: Int -> Customers
-mapIntToCustomers n = case r of
-      0 -> C1
-      1 -> C2
-      2 -> C3
-      3 -> C4
-    where r = mod n 4
-
-diceThrow :: IO Customers
-diceThrow = do
-    n <- randomIO :: IO Int
-    let dice = mapIntToCustomers n
-    return dice
-
 randomCustIndex :: IO Int 
 randomCustIndex = do
     r <- randomRIO (0, 3)
     return r    
-    
+
+randomAmount :: IO Int 
+randomAmount = do
+    r <- randomRIO (10, 50)
+    return r    
+
+-- TRANSFER FUNCTION
+transfer :: Customer -> Customer -> Int -> IO (Customer, Customer)
+transfer from to amount
+  | amount <= 0 = return (from, to)
+  | balance from < amount = return (from, to) -- maybe remove this
+  -- | name from == name to = return (from, to)  -- i added this to try to get customers to return even if it's the same
+  | otherwise = return ((from { balance =  ((balance  from) - amount)}),(to { balance  =  ((balance  to) + amount)}))
+
+
+-- THREAD PROCESS
 -- customer : the thread that is running  
 -- mvar : a separate mvar for the customer thread that is running -> in main these are one, two , three, four etc that we use to build a list in main
 -- customerlist : a shared mvar for all customers, that we use to pull them out of one by one, as they get HEAD
@@ -64,20 +65,8 @@ process customer mvar value customerlist b c = do
         randomRIO (1,10) >>= \r -> threadDelay (r * 100000)
         process customer mvar value customerlist b c
     
--- TRANSFER FUNCTION
-transfer :: Customer -> Customer -> Int -> IO (Customer, Customer)
-transfer from to amount
-  | amount <= 0 = return (from, to)
-  | balance from < amount = return (from, to) -- maybe remove this
-  -- | name from == name to = return (from, to)  -- i added this to try to get customers to return even if it's the same
-  | otherwise = return ((from { balance =  ((balance  from) - amount)}),(to { balance  =  ((balance  to) + amount)}))   
     
-    
-
-   
-    
-        
-
+-- MAIN FUNCTION        
 main :: IO ()
 main = do
     putStrLn $ ".******------ WELCOME ------******."   
@@ -143,38 +132,43 @@ main = do
     putStrLn $ show rvalue4
 
     -- TRANSFER tests | unblock -- a) we take the list of customers we've created from each thread (usecustomers) b) we use the first customers random value to index a customer on the list, they become the lucky recipient 
-    -- c) then we take the first customer out the box that got head d) they become the payee -- ** this way, all customers get transfers and transferred 
+    -- c) then we take the first customer out the box that got head d) they become the payee -- ** this way, all customers get to transfer but not all get transferred each time
     
     c <- takeMVar usecustomers -- c :: [MVar Customer]
     let index = (c!!rvalue1)
     z <- readMVar index -- changing take to read
     putStrLn $ show z 
-    (firsthead, z) <- transfer firsthead z 29
-    --putStrLn $ "****TRANSFER 1****  RECIPIENT DETAILS: " ++ (show z) ++ " TRANSFERER DETAILS : " ++ (show firsthead)
+    n <- randomAmount
+    (firsthead, z) <- transfer firsthead z n
     putStrLn $ "****TRANSFER 1****  TRANSFERER DETAILS: " ++ (show firsthead)  ++ " RECIPIENT DETAILS : " ++ (show z)    
 
     
     let index2 = (c!!rvalue2)
     y <- readMVar index2
     putStrLn $ show y 
-    (secondhead, y) <- transfer secondhead y 29
-    --putStrLn $ "****TRANSFER 2****  RECIPIENT DETAILS: " ++ (show y) ++ " TRANSFERER DETAILS : " ++ (show secondhead)
+    n <- randomAmount
+    (secondhead, y) <- transfer secondhead y n
     putStrLn $ "****TRANSFER 2****  TRANSFERER DETAILS: " ++ (show secondhead) ++ " RECIPIENT DETAILS : " ++ (show y)
 
     let index3 = (c!!rvalue3)
     w <- readMVar index3
     putStrLn $ show w 
-    (thirdhead, w) <- transfer thirdhead w 29
-    --putStrLn $ "****TRANSFER 3****  RECIPIENT DETAILS: " ++ (show w) ++ " TRANSFERER DETAILS : " ++ (show thirdhead)
+    n <- randomAmount
+    (thirdhead, w) <- transfer thirdhead w n
     putStrLn $ "****TRANSFER 3****  TRANSFERER DETAILS : " ++ (show thirdhead) ++ " RECIPIENT DETAILS : " ++ (show w) 
 
     let index4 = (c!!rvalue4)
     v <- readMVar index4
     putStrLn $ show v 
-    (fourthhead, v) <- transfer fourthhead v 29
-    --putStrLn $ "****TRANSFER 4****  RECIPIENT DETAILS: " ++ (show v) ++ " TRANSFERER DETAILS : " ++ (show fourthhead)
+    n <- randomAmount
+    (fourthhead, v) <- transfer fourthhead v n
     putStrLn $ "****TRANSFER 4****  TRANSFERER DETAILS : " ++ (show fourthhead) ++ " RECIPIENT DETAILS : " ++ (show v)
     -- c <- takeMVar customerlist -- having this at the end means the main thread is blocked i.e. all threads run, it's waiting for something | having it full means program can finish || doesn't work if run all 4 head's
+    
+    putStrLn $  "****FINAL BALANCES**** " ++  (show firsthead)
+    putStrLn $  "****FINAL BALANCES**** " ++  (show secondhead)
+    putStrLn $  "****FINAL BALANCES**** " ++  (show thirdhead)
+    putStrLn $  "****FINAL BALANCES**** " ++  (show fourthhead)
 
     putStrLn $ ".******------ TEST || THREADS ALL RUN - EXIT ------******."
 
