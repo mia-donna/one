@@ -45,8 +45,8 @@ randomCustIndex = do
     return r    
     
 -- customer : the thread that is running  
--- mvar : a separate mvar for the customer thread that is running -> in main these are one, two , three, four etc
--- customerlist : a shared mvar for all customers
+-- mvar : a separate mvar for the customer thread that is running -> in main these are one, two , three, four etc that we use to build a list in main
+-- customerlist : a shared mvar for all customers, that we use to pull them out of one by one, as they get HEAD
 -- value : a separate mvar for the random index value 
 -- TBC amount : a shared mvar for random transfer amount 
 process :: Customer -> MVar Customer -> MVar Value -> MVar Customer -> MVar Customer -> MVar Bool -> IO () 
@@ -58,7 +58,7 @@ process customer mvar value customerlist b c = do
         putMVar mvar customer
         putMVar customerlist customer
         r2 <- randomCustIndex
-        --putStrLn $ (show customer) ++ " -- got " ++ (show r2)
+        putStrLn $ (show customer) ++ " -- got " ++ (show r2) -- value tests | unblock
         putMVar value r2
     else do    
         randomRIO (1,10) >>= \r -> threadDelay (r * 100000)
@@ -85,19 +85,21 @@ main = do
     three <- newEmptyMVar
     four <- newEmptyMVar
 
-    value <- newEmptyMVar
+    value1 <- newEmptyMVar
+    value2 <- newEmptyMVar
+    value3 <- newEmptyMVar
+    value4 <- newEmptyMVar
     
     customerlist <- newEmptyMVar
     b <- newEmptyMVar
     c <- newEmptyMVar
     putStrLn $ ".******------ EMPTY MVARS CREATED ------******."
-    mapM_ forkIO [process c1 one value customerlist b c, process c2 two value customerlist b c, process c3 three value customerlist b c, process c4 four value customerlist b c]
+    mapM_ forkIO [process c1 one value1 customerlist b c, process c2 two value2 customerlist b c, process c3 three value3 customerlist b c, process c4 four value4 customerlist b c]
     putStrLn $ ".******------ THREADS RUNNING ------******."
+
 
     usecustomers <- newMVar [one, two , three, four]
 
-    --a <- takeMVar value
-    --putStrLn $ "first thread got: " ++ show a
     
     firsthead <- takeMVar customerlist
     let print_name = print . name
@@ -120,8 +122,25 @@ main = do
     putStrLn $ "FOURTH HEAD: "  
     reveal_fourth
 
+
+   -- INDEX value tests | unblock -- this way we can read each value each customer thread got
+    rvalue1 <- readMVar value1
+    putStrLn $ show rvalue1
+
+    rvalue2 <- readMVar value2
+    putStrLn $ show rvalue2
+
+    rvalue3 <- readMVar value3
+    putStrLn $ show rvalue3
+
+    rvalue4 <- readMVar value4
+    putStrLn $ show rvalue4
+
+
+
+
     -- c <- takeMVar customerlist -- having this at the end means the main thread is blocked i.e. all threads run, it's waiting for something | having it full means program can finish || doesn't work if run all 4 head's
-        
+
     putStrLn $ ".******------ TEST || THREADS ALL RUN - EXIT ------******."
 
     
