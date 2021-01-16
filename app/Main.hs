@@ -68,7 +68,8 @@ process customer mvar value customerlist b c = do
 transfer :: Customer -> Customer -> Int -> IO (Customer, Customer)
 transfer from to amount
   | amount <= 0 = return (from, to)
-  | balance from < amount = return (from, to)
+  | balance from < amount = return (from, to) -- maybe remove this
+  -- | name from == name to = return (from, to)  -- i added this to try to get customers to return even if it's the same
   | otherwise = return ((from { balance =  ((balance  from) - amount)}),(to { balance  =  ((balance  to) + amount)}))   
     
     
@@ -146,30 +147,33 @@ main = do
     
     c <- takeMVar usecustomers -- c :: [MVar Customer]
     let index = (c!!rvalue1)
-    z <- takeMVar index
+    z <- readMVar index -- changing take to read
     putStrLn $ show z 
     (firsthead, z) <- transfer firsthead z 29
-    putStrLn $ "****TRANSFER 1****  RECIPIENT DETAILS: " ++ (show z) ++ " PAYEE DETAILS : " ++ (show firsthead)
+    --putStrLn $ "****TRANSFER 1****  RECIPIENT DETAILS: " ++ (show z) ++ " TRANSFERER DETAILS : " ++ (show firsthead)
+    putStrLn $ "****TRANSFER 1****  TRANSFERER DETAILS: " ++ (show firsthead)  ++ " RECIPIENT DETAILS : " ++ (show z)    
 
     
     let index2 = (c!!rvalue2)
-    y <- takeMVar index2
+    y <- readMVar index2
     putStrLn $ show y 
     (secondhead, y) <- transfer secondhead y 29
-    putStrLn $ "****TRANSFER 2****  RECIPIENT DETAILS: " ++ (show y) ++ " PAYEE DETAILS : " ++ (show secondhead)
+    --putStrLn $ "****TRANSFER 2****  RECIPIENT DETAILS: " ++ (show y) ++ " TRANSFERER DETAILS : " ++ (show secondhead)
+    putStrLn $ "****TRANSFER 2****  TRANSFERER DETAILS: " ++ (show secondhead) ++ " RECIPIENT DETAILS : " ++ (show y)
 
     let index3 = (c!!rvalue3)
-    w <- takeMVar index3
+    w <- readMVar index3
     putStrLn $ show w 
     (thirdhead, w) <- transfer thirdhead w 29
-    putStrLn $ "****TRANSFER 3****  RECIPIENT DETAILS: " ++ (show w) ++ " PAYEE DETAILS : " ++ (show thirdhead)
+    --putStrLn $ "****TRANSFER 3****  RECIPIENT DETAILS: " ++ (show w) ++ " TRANSFERER DETAILS : " ++ (show thirdhead)
+    putStrLn $ "****TRANSFER 3****  TRANSFERER DETAILS : " ++ (show thirdhead) ++ " RECIPIENT DETAILS : " ++ (show w) 
 
     let index4 = (c!!rvalue4)
-    v <- takeMVar index4
+    v <- readMVar index4
     putStrLn $ show v 
     (fourthhead, v) <- transfer fourthhead v 29
-    putStrLn $ "****TRANSFER 4****  RECIPIENT DETAILS: " ++ (show v) ++ " PAYEE DETAILS : " ++ (show fourthhead)
-
+    --putStrLn $ "****TRANSFER 4****  RECIPIENT DETAILS: " ++ (show v) ++ " TRANSFERER DETAILS : " ++ (show fourthhead)
+    putStrLn $ "****TRANSFER 4****  TRANSFERER DETAILS : " ++ (show fourthhead) ++ " RECIPIENT DETAILS : " ++ (show v)
     -- c <- takeMVar customerlist -- having this at the end means the main thread is blocked i.e. all threads run, it's waiting for something | having it full means program can finish || doesn't work if run all 4 head's
 
     putStrLn $ ".******------ TEST || THREADS ALL RUN - EXIT ------******."
