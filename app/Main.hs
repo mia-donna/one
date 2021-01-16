@@ -51,8 +51,11 @@ process customer mvar value customerlist b c = do
     putStrLn $ (show customer) ++ " -- got " ++ (show r2) 
     
     putMVar customerlist customer
-
+    
+    putStrLn $ "putting value in a box  " 
     putMVar value r2
+    
+    
 
     {-if r1 == C1 then do
         putStrLn $ (show customer) ++ " -- got C1 test"
@@ -74,18 +77,25 @@ main = do
     two <- newEmptyMVar
     three <- newEmptyMVar
     four <- newEmptyMVar
-    value1 <- newEmptyMVar
-    value2 <- newEmptyMVar
-    value3 <- newEmptyMVar
-    value4 <- newEmptyMVar
+
+    value <- newEmptyMVar
+    
     customerlist <- newEmptyMVar
     b <- newEmptyMVar
     c <- newEmptyMVar
     putStrLn $ ".******------ EMPTY MVARS CREATED ------******."
-    mapM_ forkIO [process c1 one value1 customerlist b c, process c2 two value2 customerlist b c, process c3 three value3 customerlist b c, process c4 four value4 customerlist b c]
+    mapM_ forkIO [process c1 one value customerlist b c, process c2 two value customerlist b c, process c3 three value customerlist b c, process c4 four value customerlist b c]
     putStrLn $ ".******------ THREADS RUNNING ------******."
 
     usecustomerlist <- newMVar [one, two , three, four]
+
+    a <- takeMVar value
+    putStrLn $ "first thread got: " ++ show a
+    
+    
+
+
+    
     
     c <- takeMVar customerlist -- having this at the end means the main thread is blocked i.e. all threads run, it's waiting for something | having it full means program can finish
     putStrLn $ ".******------ TEST || THREADS ALL RUN - EXIT ------******."
