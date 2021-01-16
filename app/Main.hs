@@ -2,7 +2,7 @@ module Main where
 
 import System.Random
 import Control.Concurrent  ( threadDelay, forkIO , takeMVar , putMVar , newEmptyMVar , MVar , newMVar , readMVar )
-import Control.Monad (replicateM, forever)
+import Control.Monad (forM_ )
 
 
 -- DATA TYPES
@@ -40,7 +40,8 @@ transfer :: Customer -> Customer -> Int -> IO (Customer, Customer)
 transfer from to amount
   | amount <= 0 = return (from, to)
   | balance from < amount = return (from, to) -- maybe remove this
-  -- | name from == name to = return (from, to)  -- i added this to try to get customers to return even if it's the same
+  | balance from <= 0  = return (from, to) -- i added this to try to fit r'qs -- a transaction is processed but no money is passed if account balance is 0
+  | name from == name to = return (from, to)  -- i added this to try to fit r'qs -- customers to return even if it's the same account
   | otherwise = return ((from { balance =  ((balance  from) - amount)}),(to { balance  =  ((balance  to) + amount)}))
 
 
@@ -68,9 +69,9 @@ process customer mvar value customerlist b c = do
     
 -- MAIN FUNCTION        
 main :: IO ()
-main = do
+main = {-forM_ [1..10] $ \_ -> -} do
     putStrLn $ ".******------ WELCOME ------******."   
-    let c1 = Customer {name = "C1", balance = 1000, account = 1}
+    let c1 = Customer {name = "C1", balance = 0, account = 1}
     let c2 = Customer {name = "C2", balance = 1000, account = 2} 
     let c3 = Customer {name = "C3", balance = 1000, account = 3}
     let c4 = Customer {name = "C4", balance = 1000, account = 4} 
