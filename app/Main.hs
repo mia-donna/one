@@ -32,13 +32,24 @@ diceThrow = do
     n <- randomIO :: IO Int
     let dice = mapIntToCustomers n
     return dice
+
+randomCustIndex :: IO Int 
+randomCustIndex = do
+    r <- randomRIO (1, 4)
+    return r    
     
+-- customer : the thread that is running  
+-- mvar : a single mvar for the customer thread that is running -> in main these are one, two , three, four etc
+-- customerlist : a shared mvar for all customers
+-- value : a shared mvar for value
 process :: Customer -> MVar Customer -> MVar Value -> MVar Customer -> MVar Customer -> MVar Bool -> IO () 
-process customer mvar value a b c = do
-    r1 <- diceThrow 
+process customer mvar value customerlist b c = do
+    r2 <- randomCustIndex 
     putMVar mvar customer
-    putStrLn $ (show customer) ++ " -- got " ++ (show r1) 
     
+    putStrLn $ (show customer) ++ " -- got " ++ (show r2) 
+    
+    putMVar customerlist customer
     {-if r1 == C1 then do
         putStrLn $ (show customer) ++ " -- got C1 test"
         
@@ -60,15 +71,15 @@ main = do
     three <- newEmptyMVar
     four <- newEmptyMVar
     value <- newEmptyMVar
-    a <- newEmptyMVar
+    customerlist <- newEmptyMVar
     b <- newEmptyMVar
     c <- newEmptyMVar
     putStrLn $ ".******------ EMPTY MVARS CREATED ------******."
-    mapM_ forkIO [process c1 one value a b c, process c2 two value a b c, process c3 three value a b c, process c4 four value a b c]
+    mapM_ forkIO [process c1 one value customerlist b c, process c2 two value customerlist b c, process c3 three value customerlist b c, process c4 four value customerlist b c]
     putStrLn $ ".******------ THREADS RUN ------******."
 
-    --putMVar value 5
-    v <- takeMVar value -- having this at the end means the main thread is blocked i.e. all threads run, it's waiting for something
+    
+    v <- takeMVar customerlist -- having this at the end means the main thread is blocked i.e. all threads run, it's waiting for something | having it full means program can finish
     putStrLn $ ".******------ TEST - EXIT ------******."
 
     
