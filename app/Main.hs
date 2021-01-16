@@ -2,7 +2,7 @@ module Main where
 
 import System.Random
 import Control.Concurrent  ( threadDelay, forkIO , takeMVar , putMVar , newEmptyMVar , MVar , newMVar , readMVar )
-import Control.Monad (replicateM)
+import Control.Monad (replicateM, forever)
 
 
 -- DATA TYPES
@@ -62,7 +62,7 @@ process customer mvar value customerlist b c = do
         putStrLn $ (show customer) ++ " -- got " ++ (show r2) -- value tests | unblock
         putMVar value r2
     else do    
-        randomRIO (1,10) >>= \r -> threadDelay (r * 100000)
+        randomRIO (1,50) >>= \r -> threadDelay (r * 100000)
         process customer mvar value customerlist b c
     
     
@@ -70,16 +70,18 @@ process customer mvar value customerlist b c = do
 main :: IO ()
 main = do
     putStrLn $ ".******------ WELCOME ------******."   
-    let c1 = Customer {name = "C1", balance = 100, account = 1}
-    let c2 = Customer {name = "C2", balance = 100, account = 2} 
-    let c3 = Customer {name = "C3", balance = 100, account = 3}
-    let c4 = Customer {name = "C4", balance = 100, account = 4} 
+    let c1 = Customer {name = "C1", balance = 1000, account = 1}
+    let c2 = Customer {name = "C2", balance = 1000, account = 2} 
+    let c3 = Customer {name = "C3", balance = 1000, account = 3}
+    let c4 = Customer {name = "C4", balance = 1000, account = 4} 
     putStrLn $ ".******------ CUSTOMERS CREATED ------******." 
+
+    -- MVars for customers
     one <- newEmptyMVar
     two <- newEmptyMVar
     three <- newEmptyMVar
     four <- newEmptyMVar
-
+    -- MVars for index values
     value1 <- newEmptyMVar
     value2 <- newEmptyMVar
     value3 <- newEmptyMVar
@@ -89,10 +91,11 @@ main = do
     b <- newEmptyMVar
     c <- newEmptyMVar
     putStrLn $ ".******------ EMPTY MVARS CREATED ------******."
+    randomRIO (1,50) >>= \r -> threadDelay (r * 100000)
     mapM_ forkIO [process c1 one value1 customerlist b c, process c2 two value2 customerlist b c, process c3 three value3 customerlist b c, process c4 four value4 customerlist b c]
     putStrLn $ ".******------ THREADS RUNNING ------******."
 
-
+    -- haven't used this
     usecustomers <- newMVar [one, two , three, four]
 
     
@@ -131,12 +134,12 @@ main = do
     rvalue4 <- readMVar value4
     putStrLn $ show rvalue4
 
-    -- TRANSFER tests | unblock -- a) we take the list of customers we've created from each thread (usecustomers) b) we use the first customers random value to index a customer on the list, they become the lucky recipient 
+    -- TRANSFER tests | unblock -- a) we take the list of customers we've created from each thread (customerlist) b) we use the first customers random value to index a customer on the list, they become the lucky recipient 
     -- c) then we take the first customer out the box that got head d) they become the payee -- ** this way, all customers get to transfer but not all get transferred each time
     
     c <- takeMVar usecustomers -- c :: [MVar Customer]
     let index = (c!!rvalue1)
-    z <- readMVar index -- changing take to read
+    z <- readMVar index -- changing take to read, which means it'll run every time
     putStrLn $ show z 
     n <- randomAmount
     (firsthead, z) <- transfer firsthead z n
