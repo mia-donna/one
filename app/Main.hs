@@ -35,13 +35,14 @@ diceThrow = do
 
 randomCustIndex :: IO Int 
 randomCustIndex = do
-    r <- randomRIO (1, 4)
+    r <- randomRIO (0, 3)
     return r    
     
 -- customer : the thread that is running  
--- mvar : a single mvar for the customer thread that is running -> in main these are one, two , three, four etc
+-- mvar : a separate mvar for the customer thread that is running -> in main these are one, two , three, four etc
 -- customerlist : a shared mvar for all customers
--- value : a shared mvar for value
+-- value : a separate mvar for the random index value 
+-- TBC amount : a shared mvar for random transfer amount 
 process :: Customer -> MVar Customer -> MVar Value -> MVar Customer -> MVar Customer -> MVar Bool -> IO () 
 process customer mvar value customerlist b c = do
     r2 <- randomCustIndex 
@@ -50,6 +51,9 @@ process customer mvar value customerlist b c = do
     putStrLn $ (show customer) ++ " -- got " ++ (show r2) 
     
     putMVar customerlist customer
+
+    putMVar value r2
+
     {-if r1 == C1 then do
         putStrLn $ (show customer) ++ " -- got C1 test"
         
@@ -70,17 +74,21 @@ main = do
     two <- newEmptyMVar
     three <- newEmptyMVar
     four <- newEmptyMVar
-    value <- newEmptyMVar
+    value1 <- newEmptyMVar
+    value2 <- newEmptyMVar
+    value3 <- newEmptyMVar
+    value4 <- newEmptyMVar
     customerlist <- newEmptyMVar
     b <- newEmptyMVar
     c <- newEmptyMVar
     putStrLn $ ".******------ EMPTY MVARS CREATED ------******."
-    mapM_ forkIO [process c1 one value customerlist b c, process c2 two value customerlist b c, process c3 three value customerlist b c, process c4 four value customerlist b c]
-    putStrLn $ ".******------ THREADS RUN ------******."
+    mapM_ forkIO [process c1 one value1 customerlist b c, process c2 two value2 customerlist b c, process c3 three value3 customerlist b c, process c4 four value4 customerlist b c]
+    putStrLn $ ".******------ THREADS RUNNING ------******."
 
+    usecustomerlist <- newMVar [one, two , three, four]
     
-    v <- takeMVar customerlist -- having this at the end means the main thread is blocked i.e. all threads run, it's waiting for something | having it full means program can finish
-    putStrLn $ ".******------ TEST - EXIT ------******."
+    c <- takeMVar customerlist -- having this at the end means the main thread is blocked i.e. all threads run, it's waiting for something | having it full means program can finish
+    putStrLn $ ".******------ TEST || THREADS ALL RUN - EXIT ------******."
 
     
 
