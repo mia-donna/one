@@ -142,13 +142,33 @@ main = do
     putStrLn $ show rvalue4
 
     -- TRANSFER tests | unblock -- a) we take the list of customers we've created from each thread (usecustomers) b) we use the first customers random value to index a customer on the list, they become the lucky recipient 
-    -- c) then we take the first customer out the box that got head d) they become the payee
+    -- c) then we take the first customer out the box that got head d) they become the payee -- ** this way, all customers get transfers and transferred 
+    
     c <- takeMVar usecustomers -- c :: [MVar Customer]
-    let testindex = (c!!rvalue1)
-    r <- takeMVar testindex
-    putStrLn $ show r 
-    (firsthead, r) <- transfer firsthead r 29
-    putStrLn $ "****TRANSFER****  RECIPIENT DETAILS: " ++ (show r) ++ " PAYEE DETAILS : " ++ (show firsthead)
+    let index = (c!!rvalue1)
+    z <- takeMVar index
+    putStrLn $ show z 
+    (firsthead, z) <- transfer firsthead z 29
+    putStrLn $ "****TRANSFER 1****  RECIPIENT DETAILS: " ++ (show z) ++ " PAYEE DETAILS : " ++ (show firsthead)
+
+    
+    let index2 = (c!!rvalue2)
+    y <- takeMVar index2
+    putStrLn $ show y 
+    (secondhead, y) <- transfer secondhead y 29
+    putStrLn $ "****TRANSFER 2****  RECIPIENT DETAILS: " ++ (show y) ++ " PAYEE DETAILS : " ++ (show secondhead)
+
+    let index3 = (c!!rvalue3)
+    w <- takeMVar index3
+    putStrLn $ show w 
+    (thirdhead, w) <- transfer thirdhead w 29
+    putStrLn $ "****TRANSFER 3****  RECIPIENT DETAILS: " ++ (show w) ++ " PAYEE DETAILS : " ++ (show thirdhead)
+
+    let index4 = (c!!rvalue4)
+    v <- takeMVar index4
+    putStrLn $ show v 
+    (fourthhead, v) <- transfer fourthhead v 29
+    putStrLn $ "****TRANSFER 4****  RECIPIENT DETAILS: " ++ (show v) ++ " PAYEE DETAILS : " ++ (show fourthhead)
 
     -- c <- takeMVar customerlist -- having this at the end means the main thread is blocked i.e. all threads run, it's waiting for something | having it full means program can finish || doesn't work if run all 4 head's
 
