@@ -17,7 +17,13 @@ type Balance =  Int
 type Name = String
 type Value = Int
 
+data Coin = Head | Tail deriving (Show, Eq)  
 data Customers = C1 | C2 | C3 | C4 deriving (Show, Eq)
+
+coinFlip :: IO Coin
+coinFlip = do
+    r <- randomIO :: IO Bool
+    return $ if r then Head else Tail
 
 mapIntToCustomers :: Int -> Customers
 mapIntToCustomers n = case r of
@@ -45,23 +51,24 @@ randomCustIndex = do
 -- TBC amount : a shared mvar for random transfer amount 
 process :: Customer -> MVar Customer -> MVar Value -> MVar Customer -> MVar Customer -> MVar Bool -> IO () 
 process customer mvar value customerlist b c = do
-    r2 <- randomCustIndex 
-    putMVar mvar customer
+    c1 <- coinFlip
+    putStrLn $ (show customer) ++ "'s turn, they -- got " ++ (show c1) 
+       
+    if c1 == Head then do
+        putMVar mvar customer
+        putMVar customerlist customer
+        r2 <- randomCustIndex
+        --putStrLn $ (show customer) ++ " -- got " ++ (show r2)
+        putMVar value r2
+    else do    
+        randomRIO (1,10) >>= \r -> threadDelay (r * 100000)
+        process customer mvar value customerlist b c
     
-    putStrLn $ (show customer) ++ " -- got " ++ (show r2) 
-    
-    putMVar customerlist customer
-    
-    putStrLn $ "putting value in a box  " 
-    putMVar value r2
+   
     
     
 
-    {-if r1 == C1 then do
-        putStrLn $ (show customer) ++ " -- got C1 test"
-        
-     else do 
-       putStrLn $ (show customer) ++ " -- got another customer"   -}
+   
     
         
 
@@ -87,25 +94,37 @@ main = do
     mapM_ forkIO [process c1 one value customerlist b c, process c2 two value customerlist b c, process c3 three value customerlist b c, process c4 four value customerlist b c]
     putStrLn $ ".******------ THREADS RUNNING ------******."
 
-    usecustomerlist <- newMVar [one, two , three, four]
+    usecustomers <- newMVar [one, two , three, four]
 
-    a <- takeMVar value
-    putStrLn $ "first thread got: " ++ show a
+    --a <- takeMVar value
+    --putStrLn $ "first thread got: " ++ show a
     
-    
+    firsthead <- takeMVar customerlist
+    let print_name = print . name
+    let reveal_first = print_name firsthead
+    putStrLn $ "FIRST HEAD: "  
+    reveal_first
 
+    secondhead <- takeMVar customerlist
+    let reveal_second = print_name secondhead
+    putStrLn $ "SECOND HEAD: "  
+    reveal_second
+    
+    thirdhead <- takeMVar customerlist
+    let reveal_third = print_name thirdhead
+    putStrLn $ "THIRD HEAD: "  
+    reveal_third
+    
+    fourthhead <- takeMVar customerlist
+    let reveal_fourth = print_name fourthhead
+    putStrLn $ "FOURTH HEAD: "  
+    reveal_fourth
 
-    
-    
-    c <- takeMVar customerlist -- having this at the end means the main thread is blocked i.e. all threads run, it's waiting for something | having it full means program can finish
+    -- c <- takeMVar customerlist -- having this at the end means the main thread is blocked i.e. all threads run, it's waiting for something | having it full means program can finish || doesn't work if run all 4 head's
+        
     putStrLn $ ".******------ TEST || THREADS ALL RUN - EXIT ------******."
 
     
-
-
-
-
-
 
 
 
