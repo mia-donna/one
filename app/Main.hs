@@ -64,7 +64,12 @@ process customer mvar value customerlist b c = do
         randomRIO (1,10) >>= \r -> threadDelay (r * 100000)
         process customer mvar value customerlist b c
     
-   
+-- TRANSFER FUNCTION
+transfer :: Customer -> Customer -> Int -> IO (Customer, Customer)
+transfer from to amount
+  | amount <= 0 = return (from, to)
+  | balance from < amount = return (from, to)
+  | otherwise = return ((from { balance =  ((balance  from) - amount)}),(to { balance  =  ((balance  to) + amount)}))   
     
     
 
@@ -78,7 +83,7 @@ main = do
     let c1 = Customer {name = "C1", balance = 100, account = 1}
     let c2 = Customer {name = "C2", balance = 100, account = 2} 
     let c3 = Customer {name = "C3", balance = 100, account = 3}
-    let c4 = Customer {name = "C4", balance = 20, account = 4} 
+    let c4 = Customer {name = "C4", balance = 100, account = 4} 
     putStrLn $ ".******------ CUSTOMERS CREATED ------******." 
     one <- newEmptyMVar
     two <- newEmptyMVar
@@ -136,8 +141,14 @@ main = do
     rvalue4 <- readMVar value4
     putStrLn $ show rvalue4
 
-
-
+    -- TRANSFER tests | unblock -- a) we take the list of customers we've created from each thread (usecustomers) b) we use the first customers random value to index a customer on the list, they become the lucky recipient 
+    -- c) then we take the first customer out the box that got head d) they become the payee
+    c <- takeMVar usecustomers -- c :: [MVar Customer]
+    let testindex = (c!!rvalue1)
+    r <- takeMVar testindex
+    putStrLn $ show r 
+    (firsthead, r) <- transfer firsthead r 29
+    putStrLn $ "****TRANSFER****  RECIPIENT DETAILS: " ++ (show r) ++ " PAYEE DETAILS : " ++ (show firsthead)
 
     -- c <- takeMVar customerlist -- having this at the end means the main thread is blocked i.e. all threads run, it's waiting for something | having it full means program can finish || doesn't work if run all 4 head's
 
