@@ -41,7 +41,7 @@ transfer from to amount
   | amount <= 0 = return (from, to)
   | balance from < amount = return (from, to) -- maybe remove this
   | balance from <= 0  = return (from, to) -- i added this to try to fit r'qs -- a transaction is processed but no money is passed if account balance is 0
-  | name from == name to = return (from, to)  -- i added this to try to fit r'qs -- customers to return even if it's the same account
+  | name from == name to = return (from, to)  -- i added this to try to fit r'qs -- customers to return even if it's the same account -- though we have caught these cases in main
   | otherwise = return ((from { balance =  ((balance  from) - amount)}),(to { balance  =  ((balance  to) + amount)}))
 
 
@@ -69,7 +69,7 @@ process customer mvar value customerlist b c = do
     
 -- MAIN FUNCTION        
 main :: IO ()
-main = {-forM_ [1..10] $ \_ -> -} do
+main = forM_ [1..10] $ \_ -> do
     putStrLn $ ".******------ WELCOME ------******."   
     let c1 = Customer {name = "C1", balance = 0, account = 1}
     let c2 = Customer {name = "C2", balance = 1000, account = 2} 
@@ -138,41 +138,112 @@ main = {-forM_ [1..10] $ \_ -> -} do
     -- TRANSFER tests | unblock -- a) we take the list of customers we've created from each thread (customerlist) b) we use the first customers random value to index a customer on the list, they become the lucky recipient 
     -- c) then we take the first customer out the box that got head d) they become the payee -- ** this way, all customers get to transfer but not all get transferred each time
     
+-- || INDEXING FOR TRANSFERS   
     c <- takeMVar usecustomers -- c :: [MVar Customer]
+    
     let index = (c!!rvalue1)
-    z <- readMVar index -- changing take to read, which means it'll run every time
+    z <- readMVar index 
     putStrLn $ show z 
     n <- randomAmount
-    (firsthead, z) <- transfer firsthead z n
-    putStrLn $ "****TRANSFER 1****  TRANSFERER DETAILS: " ++ (show firsthead)  ++ " RECIPIENT DETAILS : " ++ (show z)    
 
-    
     let index2 = (c!!rvalue2)
     y <- readMVar index2
-    putStrLn $ show y 
-    n <- randomAmount
-    (secondhead, y) <- transfer secondhead y n
-    putStrLn $ "****TRANSFER 2****  TRANSFERER DETAILS: " ++ (show secondhead) ++ " RECIPIENT DETAILS : " ++ (show y)
 
     let index3 = (c!!rvalue3)
     w <- readMVar index3
-    putStrLn $ show w 
-    n <- randomAmount
-    (thirdhead, w) <- transfer thirdhead w n
-    putStrLn $ "****TRANSFER 3****  TRANSFERER DETAILS : " ++ (show thirdhead) ++ " RECIPIENT DETAILS : " ++ (show w) 
 
     let index4 = (c!!rvalue4)
     v <- readMVar index4
-    putStrLn $ show v 
-    n <- randomAmount
-    (fourthhead, v) <- transfer fourthhead v n
-    putStrLn $ "****TRANSFER 4****  TRANSFERER DETAILS : " ++ (show fourthhead) ++ " RECIPIENT DETAILS : " ++ (show v)
-    -- c <- takeMVar customerlist -- having this at the end means the main thread is blocked i.e. all threads run, it's waiting for something | having it full means program can finish || doesn't work if run all 4 head's
-    
+
+
+
+-- || TRANSFERS : with else ifs to catch customers from choosing themselves
+-- || FIRST
+    if firsthead /= z then do
+       (firsthead, z) <- transfer firsthead z n
+       putStrLn $ "SUCCESS ****TRANSFER 1****  TRANSFERER DETAILS: " ++ (show firsthead)  ++ " RECIPIENT DETAILS : " ++ (show z)    
+     else do 
+         putStrLn $ "ERROR ****TRANSFER 1**** woops - two matching customers so no transfer - finding a new customer to transfer to ... "
+         if rvalue1 == 3 then do -- number of indexes
+            let rvalue1_ = rvalue1 - 1 -- minus one to random index so the next customer gets the transfer
+            let index_ = (c!!rvalue1_)
+            z_ <- readMVar index_
+            (firsthead, z_) <- transfer firsthead z_ n 
+            putStrLn $ "SUCCESS ****TRANSFER 1****  TRANSFERER DETAILS: " ++ (show firsthead)  ++ " RECIPIENT DETAILS : " ++ (show z_)
+          else do
+            let rvalue1_ = rvalue1 + 1 -- add one to random index so the next customer gets the transfer
+            let index_ = (c!!rvalue1_)
+            z_ <- readMVar index_
+            (firsthead, z_) <- transfer firsthead z_ n 
+            putStrLn $ "SUCCESS ****TRANSFER 1****  TRANSFERER DETAILS: " ++ (show firsthead)  ++ " RECIPIENT DETAILS : " ++ (show z_)
+-- || SECOND 
+    if secondhead /= y then do 
+       n <- randomAmount
+       (secondhead, y) <- transfer secondhead y n
+       putStrLn $ "SUCCESS ****TRANSFER 2****  TRANSFERER DETAILS: " ++ (show secondhead) ++ " RECIPIENT DETAILS : " ++ (show y)
+     else do
+         putStrLn $ "ERROR ****TRANSFER 2**** woops - two matching customers so no transfer - finding a new customer to transfer to ..."
+         if rvalue2 == 3 then do 
+            let rvalue2_ = rvalue2 - 1 
+            let index2_ = (c!!rvalue2_)
+            y_ <- readMVar index2_
+            (secondhead, y_) <- transfer secondhead y_ n 
+            putStrLn $ "SUCCESS ****TRANSFER 2****  TRANSFERER DETAILS: " ++ (show secondhead)  ++ " RECIPIENT DETAILS : " ++ (show y_)
+          else do
+            let rvalue2_ = rvalue2 + 1 
+            let index2_ = (c!!rvalue2_)
+            y_ <- readMVar index2_
+            (secondhead, y_) <- transfer firsthead y_ n 
+            putStrLn $ "SUCCESS ****TRANSFER 1****  TRANSFERER DETAILS: " ++ (show secondhead)  ++ " RECIPIENT DETAILS : " ++ (show y_)
+-- || THIRD
+    if thirdhead /= w then do 
+       n <- randomAmount
+       (thirdhead, w) <- transfer thirdhead w n
+       putStrLn $ "SUCCESS ****TRANSFER 3****  TRANSFERER DETAILS : " ++ (show thirdhead) ++ " RECIPIENT DETAILS : " ++ (show w) 
+     else do 
+         putStrLn $ "ERROR ****TRANSFER 3**** woops - two matching customers so no transfer - finding a new customer to transfer to ..."
+         if rvalue3 == 3 then do
+            let rvalue3_ = rvalue3 - 1 
+            let index3_ = (c!!rvalue3_)
+            w_ <- readMVar index3_
+            (thirdhead, w_) <- transfer thirdhead w_ n 
+            putStrLn $ "SUCCESS ****TRANSFER 3****  TRANSFERER DETAILS: " ++ (show thirdhead)  ++ " RECIPIENT DETAILS : " ++ (show w_)
+          else do
+            let rvalue3_ = rvalue3 + 1 
+            let index3_ = (c!!rvalue3_)
+            w_ <- readMVar index3_
+            (thirdhead, w_) <- transfer thirdhead w_ n 
+            putStrLn $ "SUCCESS ****TRANSFER 3****  TRANSFERER DETAILS: " ++ (show thirdhead)  ++ " RECIPIENT DETAILS : " ++ (show w_)
+-- || FOURTH
+
+    if fourthhead /= v then do 
+       n <- randomAmount
+       (fourthhead, v) <- transfer fourthhead v n 
+       putStrLn $ "SUCCESS ****TRANSFER 4****  TRANSFERER DETAILS : " ++ (show fourthhead) ++ " RECIPIENT DETAILS : " ++ (show v)
+     else do 
+         putStrLn $ "ERROR ****TRANSFER 4**** woops - two matching customers so no transfer - finding a new customer to transfer to ..."
+         if rvalue4 == 3 then do
+            let rvalue4_ = rvalue4 - 1 
+            let index4_ = (c!!rvalue4_)
+            v_ <- readMVar index4_
+            (secondhead, v_) <- transfer fourthhead v_ n 
+            putStrLn $ "SUCCESS ****TRANSFER 4****  TRANSFERER DETAILS: " ++ (show fourthhead)  ++ " RECIPIENT DETAILS : " ++ (show v_)
+          else do
+            let rvalue4_ = rvalue4 + 1 
+            let index4_ = (c!!rvalue4_)
+            v_ <- readMVar index4_
+            (fourthhead, v_) <- transfer fourthhead v_ n 
+            putStrLn $ "SUCCESS ****TRANSFER 4****  TRANSFERER DETAILS: " ++ (show fourthhead)  ++ " RECIPIENT DETAILS : " ++ (show v_)
+
+
+
+
+
+    {-
     putStrLn $  "****FINAL BALANCES**** " ++  (show firsthead)
     putStrLn $  "****FINAL BALANCES**** " ++  (show secondhead)
     putStrLn $  "****FINAL BALANCES**** " ++  (show thirdhead)
-    putStrLn $  "****FINAL BALANCES**** " ++  (show fourthhead)
+    putStrLn $  "****FINAL BALANCES**** " ++  (show fourthhead)-}
 
     putStrLn $ ".******------ TEST || THREADS ALL RUN - EXIT ------******."
 
